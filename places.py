@@ -33,21 +33,19 @@ async def randsleep(a: int = 1, b: int = 5, caller=None) -> None:
 
 class ExampleProducer:
     async def produce(self, q):
-        for x in range(1, 2):
+        for x in range(1, 3):
             await randsleep(caller=f"Producer")
             print(f"Producer {x}")
             await q.put(x)
 
 
 class ExampleProducerConsumer:
-    q = asyncio.Queue()
-
     async def consume(self, q, q2):
         while True:
             num = await q.get()
             print(f"Consumer/Producer {num}")
             num += 3
-            # await q2.put(num)
+            await q2.put(num)
             q.task_done()
 
 
@@ -56,6 +54,7 @@ class FullConsumer:
         while True:
             num = await q.get()
             print(f"Final consumer {num}")
+            q.task_done()
 
 
 async def main():
@@ -69,16 +68,15 @@ async def main():
     consumers1 = [
         asyncio.create_task(producer_consumer.consume(q, q2)) for n in range(10)
     ]
-    # consumers2 = [
-    #     asyncio.create_task(consumer.consume(producer_consumer.q)) for n in range(10)
-    # ]
+    consumers2 = [asyncio.create_task(consumer.consume(q2)) for n in range(10)]
     await asyncio.gather(*producers)
     await q.join()  # Implicitly awaits consumers, too
-    # await producer_consumer.q.join()  # Implicitly awaits consumers, too
+    await q2.join()  # Implicitly awaits consumers, too
+    await producer_consumer.q.join()  # Implicitly awaits consumers, too
     for c in consumers1:
         c.cancel()
-    # for c in consumers2:
-    #     c.cancel()
+    for c in consumers2:
+        c.cancel()
 
 
 asyncio.run(main())
