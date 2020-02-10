@@ -41,14 +41,6 @@ class Job:
     queue = asyncio.Queue
 
 
-@dataclass
-class Pipe:
-    parent: Job
-    child: Job
-    queue: asyncio.Queue
-    child_queue: asyncio.Queue
-
-
 """
 The issue is there needs to be a seperate queue
 per child job. Meaning I have to abstract away
@@ -59,6 +51,26 @@ It will only get from queue, but will put to all child queues
 - inherit queue and override put.
 - As well as store child queue
 """
+
+
+class MultiQueue:
+    def __init__(self, queues=None):
+        self.queues = queues or []
+
+    async def put(self, item):
+        for q in self.queues:
+            await q.put(item)
+
+    def add_queue(self, q):
+        self.queues.append(q)
+
+
+@dataclass
+class Pipe:
+    parent: Job
+    child: Job
+    queue: asyncio.Queue
+    subscribed_queues: MultiQueue
 
 
 class ExampleProducer(Job):
@@ -98,47 +110,68 @@ class ExampleProducer(Job):
             t.cancel()
 
     def _build_tasks(self, pipe_list):
-        queues = []
+        queues = set()
         tasks = collections.deque()
         for i, pipe in enumerate(pipe_list):
+            print(pipe_list)
             # Can be implemented easily
             parent = pipe.parent
             parent_workers = parent.workers
             q = pipe.queue
-            if q is None:
+            if q is None and i != 0:
                 continue
 
-            child = pipe.child
-            child_workers = child.workers
-            out_q = pipe.child_queue
+            # child = pipe.child
+            # child_workers = child.workers
+            out_q = pipe.subscribed_queues
+            print(out_q.queues)
+            other_q = out_q.queues
             if i == 0:
                 prod_tasks = [
-                    asyncio.create_task(parent.start(q, None))
+                    asyncio.create_task(parent.start(out_q, None))
                     for _ in range(parent_workers)
                 ]
                 tasks.append(prod_tasks)
-            con_tasks = [
-                asyncio.create_task(child.start(q, out_q)) for _ in range(child_workers)
+                continue
+            prod_tasks = [
+                asyncio.create_task(parent.start(q, out_q))
+                for _ in range(parent_workers)
             ]
-            tasks.append(con_tasks)
-            queues.append(q)
+            tasks.append(prod_tasks)
+
+            # con_tasks = [
+            #     asyncio.create_task(child.start(q, out_q)) for _ in range(child_workers)
+            # ]
+            # tasks.append(con_tasks)
+            queues.add(q)
+            for x in other_q:
+                queues.add(x)
         return tasks, queues
 
     def _build_ordered_pipe_list(self, parent, parent_queue, pipe_list):
         children = parent.children
         if not children:
-            # pipe_list.append(
-            #     Pipe(parent=parent, child=None, queue=None, child_queue=None)
-            # )
+            pipe_list.append(
+                Pipe(
+                    parent=parent,
+                    child=None,
+                    queue=parent_queue,
+                    subscribed_queues=MultiQueue(),
+                )
+            )
             return pipe_list
-        parent_queue = parent_queue or parent.queue()
         print(children)
         print(len(children))
+        multi_queue = MultiQueue()
         for child in children:
             print(child)
             child_queue = child.queue()
+            multi_queue.add_queue(child_queue)
             pipe = Pipe(
-                parent=parent, child=child, queue=parent_queue, child_queue=child_queue,
+                parent=parent,
+                child=child,
+                queue=parent_queue,
+                subscribed_queues=multi_queue,
             )
             pipe_list.append(pipe)
             pipe_list = self._build_ordered_pipe_list(child, child_queue, pipe_list)
