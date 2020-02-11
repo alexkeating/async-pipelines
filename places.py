@@ -24,21 +24,14 @@ import collections
 # and focus on the query or request etc...
 import random
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import Callable, Deque, List, Optional, Set, Tuple, TypeVar, Union
 
 
-T = TypeVar("T", bound="Pipe")
-
-
-async def randsleep(a: int = 1, b: int = 5, caller=None) -> None:
+async def randsleep(a: int = 1, b: int = 5, caller: Optional[str] = None) -> None:
     i = random.randint(0, 10)
     if caller:
         print(f"{caller} sleeping for {i} seconds.")
     await asyncio.sleep(i)
-
-
-class Job:
-    queue = asyncio.Queue
 
 
 """
@@ -51,44 +44,49 @@ It will only get from queue, but will put to all child queues
 - inherit queue and override put.
 - As well as store child queue
 """
+_T = TypeVar("_T")
 
 
 class MultiQueue:
-    def __init__(self, queues=None):
+    def __init__(self, queues: List[asyncio.Queue] = None):
         self.queues = queues or []
 
-    async def put(self, item):
+    async def put(self, item: _T) -> None:
         for q in self.queues:
             await q.put(item)
 
-    def add_queue(self, q):
+    def add_queue(self, q: asyncio.Queue) -> None:
         self.queues.append(q)
+
+
+Queue = Union[asyncio.Queue, MultiQueue]
+T = TypeVar("T", bound="Job")
 
 
 @dataclass
 class Pipe:
-    parent: Job
-    child: Job
-    queue: asyncio.Queue
+    parent: T
+    child: Optional[T]
+    queue: Optional[asyncio.Queue]
     subscribed_queues: MultiQueue
 
 
-class ExampleProducer(Job):
+class Job:
+    queue = asyncio.Queue
     workers = 5
 
-    def __init__(self):
-        self.children = []
+    def __init__(self) -> None:
+        self.children: List[Job] = []
 
-    async def start(self, in_q, out_q):
-        for x in range(1, 3):
-            await randsleep(caller=f"Producer")
-            print(f"Producer {x}")
-            await in_q.put(x)
+    async def start(
+        self, in_q: Optional[asyncio.Queue], out_q: Optional[MultiQueue]
+    ) -> None:
+        pass
 
-    def set_downstream(self, job):
+    def set_downstream(self, job: T) -> None:
         self.children.append(job)
 
-    async def execute_jobs(self):
+    async def execute_jobs(self) -> None:
         # Iterate through and create a list of
         # pipe objects
         #    - pipe object has parent, child, and reference to
@@ -105,15 +103,16 @@ class ExampleProducer(Job):
         for task_list in tasks:
             self._cancel_tasks(task_list)
 
-    def _cancel_tasks(self, task_list):
+    def _cancel_tasks(self, task_list: List[asyncio.Task]) -> None:
         for t in task_list:
             t.cancel()
 
-    def _build_tasks(self, pipe_list):
+    def _build_tasks(
+        self, pipe_list: List[Pipe]
+    ) -> Tuple[Deque[List[asyncio.Task]], Set[asyncio.Queue]]:
         queues = set()
-        tasks = collections.deque()
+        tasks: Deque[List[asyncio.Task]] = collections.deque()
         for i, pipe in enumerate(pipe_list):
-            print(pipe_list)
             # Can be implemented easily
             parent = pipe.parent
             parent_workers = parent.workers
@@ -124,11 +123,10 @@ class ExampleProducer(Job):
             # child = pipe.child
             # child_workers = child.workers
             out_q = pipe.subscribed_queues
-            print(out_q.queues)
             other_q = out_q.queues
             if i == 0:
                 prod_tasks = [
-                    asyncio.create_task(parent.start(out_q, None))
+                    asyncio.create_task(parent.start(None, out_q))
                     for _ in range(parent_workers)
                 ]
                 tasks.append(prod_tasks)
@@ -143,14 +141,19 @@ class ExampleProducer(Job):
             #     asyncio.create_task(child.start(q, out_q)) for _ in range(child_workers)
             # ]
             # tasks.append(con_tasks)
-            queues.add(q)
-            for x in other_q:
-                queues.add(x)
+            if q is not None:
+                queues.add(q)
+                for x in other_q:
+                    queues.add(x)
         return tasks, queues
 
-    def _build_ordered_pipe_list(self, parent, parent_queue, pipe_list):
+    def _build_ordered_pipe_list(
+        self, parent: T, parent_queue: Optional[asyncio.Queue], pipe_list: List[Pipe]
+    ) -> List[Pipe]:
         children = parent.children
         if not children:
+            if parent_queue is None:
+                raise ValueError(f"parent_queue cannot be None in final pipe: {parent}")
             pipe_list.append(
                 Pipe(
                     parent=parent,
@@ -160,12 +163,9 @@ class ExampleProducer(Job):
                 )
             )
             return pipe_list
-        print(children)
-        print(len(children))
         multi_queue = MultiQueue()
         for child in children:
-            print(child)
-            child_queue = child.queue()
+            child_queue: asyncio.Queue = child.queue()
             multi_queue.add_queue(child_queue)
             pipe = Pipe(
                 parent=parent,
@@ -175,17 +175,27 @@ class ExampleProducer(Job):
             )
             pipe_list.append(pipe)
             pipe_list = self._build_ordered_pipe_list(child, child_queue, pipe_list)
-        print(pipe_list)
         return pipe_list
+
+
+class ExampleProducer(Job):
+    workers = 5
+
+    async def start(self, in_q: Optional[Queue], out_q: Optional[MultiQueue]) -> None:
+        assert out_q is not None
+        for x in range(1, 3):
+            await randsleep(caller=f"Producer")
+            print(f"Producer {x}")
+            await out_q.put(x)
 
 
 class ExampleProducerConsumer(Job):
     workers = 5
 
-    def __init__(self):
-        self.children = []
-
-    async def start(self, in_q, out_q):
+    async def start(
+        self, in_q: Optional[asyncio.Queue], out_q: Optional[MultiQueue]
+    ) -> None:
+        assert in_q is not None and out_q is not None
         while True:
             num = await in_q.get()
             print(f"Consumer/Producer {num}")
@@ -193,28 +203,25 @@ class ExampleProducerConsumer(Job):
             await out_q.put(num)
             in_q.task_done()
 
-    def set_downstream(self, job):
-        self.children.append(job)
-
 
 class FullConsumer(Job):
     workers = 5
 
-    def __init__(self, name):
-        self.children = []
+    def __init__(self, name: str) -> None:
+        super().__init__()
         self.name = name
 
-    async def start(self, in_q, out_q):
+    async def start(
+        self, in_q: Optional[asyncio.Queue], out_q: Optional[MultiQueue]
+    ) -> None:
+        assert in_q is not None
         while True:
             num = await in_q.get()
             print(f"{self.name} {num}")
             in_q.task_done()
 
-    def set_downstream(self, job):
-        self.children.append(job)
 
-
-async def main():
+async def main() -> None:
     # Needs to represent a tree
     root = ExampleProducer()
     producer_consumer = ExampleProducerConsumer()
