@@ -112,4 +112,10 @@ async def test__build_tasks(pipes, workers, data):
     assert len(queues) == _num_queues(pipes)
 
 
+@pytest.mark.asyncio
+async def test_single_job():
+    j = Job()
+    await j.execute_jobs()
+
+
 # Test build tasks

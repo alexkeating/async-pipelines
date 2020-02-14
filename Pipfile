@@ -8,6 +8,7 @@ pytest = "*"
 pytest-asyncio = "*"
 mypy = "*"
 hypothesis = "*"
+pytest-cov = "*"
 
 [dev-packages]
 tox = "*"
