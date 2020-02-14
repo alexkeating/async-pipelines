@@ -7,6 +7,7 @@ name = "pypi"
 pytest = "*"
 pytest-asyncio = "*"
 mypy = "*"
+hypothesis = "*"
 
 [dev-packages]
 tox = "*"
