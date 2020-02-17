@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import collections
+import abc
 
 from dataclasses import dataclass
 from typing import Deque, List, Optional, Set, Tuple, TypeVar, Union
@@ -31,13 +32,14 @@ class Pipe:
     subscribed_queues: MultiQueue
 
 
-class Job:
+class Job(abc.ABC):
     queue = asyncio.Queue
     workers = 5
 
     def __init__(self) -> None:
         self.children: List[Job] = []
 
+    @abc.abstractmethod
     async def start(
         self, in_q: Optional[asyncio.Queue], out_q: Optional[MultiQueue]
     ) -> None:

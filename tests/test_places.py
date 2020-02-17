@@ -13,7 +13,7 @@ from hypothesis.strategies import (
 )
 
 from places import Job, MultiQueue, Pipe
-
+from typing import Optional
 
 # Test build pipeline list
 
@@ -26,13 +26,20 @@ from places import Job, MultiQueue, Pipe
 #
 
 
+class MockJob(Job):
+    async def start(
+        self, in_q: Optional[asyncio.Queue], out_q: Optional[MultiQueue]
+    ) -> None:
+        print("Running")
+
+
 @composite
 def job_tree(draw):
-    parent = draw(builds(Job))
+    parent = draw(builds(MockJob))
     root = parent
     depth = draw(integers(min_value=1, max_value=10))
     for i in range(depth):
-        children = draw(lists(builds(Job)))
+        children = draw(lists(builds(MockJob)))
         for c in children:
             parent.set_downstream(c)
         if children:
@@ -68,7 +75,7 @@ async def test_build_test_pipeline(s):
 
 @composite
 def pipe(draw):
-    job = draw(builds(Job))
+    job = draw(builds(MockJob))
     queue = draw(one_of(builds(asyncio.Queue), none()))
     multi_queue = draw(builds(MultiQueue))
     return Pipe(parent=job, queue=queue, subscribed_queues=multi_queue)
@@ -104,7 +111,7 @@ def _num_queues(pipes):
 @pytest.mark.asyncio
 @given(lists(pipe(), min_size=1), integers(min_value=0), data())
 async def test__build_tasks(pipes, workers, data):
-    job = data.draw(builds(Job))
+    job = data.draw(builds(MockJob))
     job.workers = workers
     tasks, queues = job._build_tasks(pipes)
     assert len(tasks) == _num_tasks(pipes)
@@ -113,7 +120,7 @@ async def test__build_tasks(pipes, workers, data):
 
 @pytest.mark.asyncio
 async def test_single_job():
-    j = Job()
+    j = MockJob()
     await j.execute_jobs()
 
 
