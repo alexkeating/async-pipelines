@@ -10,7 +10,6 @@ from hypothesis.strategies import (
     lists,
     none,
     one_of,
-    register_type_strategy,
 )
 
 from places import Job, MultiQueue, Pipe
@@ -43,7 +42,7 @@ def job_tree(draw):
 
 def _number_of_pipes(job):
     """
-    This should be number of jobs plus 
+    This should be number of jobs plus
     all end nodes.
     """
     pipe_count = 0

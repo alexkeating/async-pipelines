@@ -1,5 +1,4 @@
 import asyncio
-import collections
 
 
 # user can define a consumer and
@@ -18,9 +17,7 @@ import collections
 # I want the ability to easliy write the glue for jobs
 # and focus on the query or request etc...
 import random
-from dataclasses import dataclass
-from typing import Callable, Deque, List, Optional, Set, Tuple, TypeVar, Union
-
+from typing import Optional
 from places import Job, Queue, MultiQueue
 
 

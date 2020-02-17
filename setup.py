@@ -25,6 +25,13 @@ def get_long_description():
     return long_description
 
 
+def get_packages(package):
+    """
+    Return root package and all sub-packages.
+    """
+    return [str(path.parent) for path in Path(package).glob("**/__init__.py")]
+
+
 setup(
     name="places",
     python_requires=">=3.7",

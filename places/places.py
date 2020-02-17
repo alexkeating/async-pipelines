@@ -1,49 +1,11 @@
-# Use async await producer consumer pattern for queues
-# Probably throw ina message processor
-# 1. Batching
-# 2. Lets go with class based approach
+from __future__ import annotations
 
 import asyncio
 import collections
 
-
-# user can define a consumer and
-# a producer. But the producer can
-# be overriden with another job class where it pass
-# the queue to the consumer
-#
-# A job can be either a producer or a consumer
-# and can also be both with at most two queues
-#
-# I think I can get away with one method worker?
-# Worker would take args and the job class would take a queue
-# or upstream class?
-#
-#
-# I want the ability to easliy write the glue for jobs
-# and focus on the query or request etc...
-import random
 from dataclasses import dataclass
-from typing import Callable, Deque, List, Optional, Set, Tuple, TypeVar, Union
+from typing import Deque, List, Optional, Set, Tuple, TypeVar, Union
 
-
-async def randsleep(a: int = 1, b: int = 5, caller: Optional[str] = None) -> None:
-    i = random.randint(0, 10)
-    if caller:
-        print(f"{caller} sleeping for {i} seconds.")
-    await asyncio.sleep(i)
-
-
-"""
-The issue is there needs to be a seperate queue
-per child job. Meaning I have to abstract away
-multiple queues to act like a single queue
-SNS over SQS.
-
-It will only get from queue, but will put to all child queues
-- inherit queue and override put.
-- As well as store child queue
-"""
 _T = TypeVar("_T")
 
 
@@ -60,12 +22,11 @@ class MultiQueue:
 
 
 Queue = Union[asyncio.Queue, MultiQueue]
-T = TypeVar("T", bound="Job")
 
 
 @dataclass
 class Pipe:
-    parent: T
+    parent: Job
     queue: Optional[asyncio.Queue]
     subscribed_queues: MultiQueue
 
@@ -82,7 +43,7 @@ class Job:
     ) -> None:
         pass
 
-    def set_downstream(self, job: T) -> None:
+    def set_downstream(self, job: Job) -> None:
         self.children.append(job)
 
     async def execute_jobs(self) -> None:
@@ -142,7 +103,7 @@ class Job:
 
     @classmethod
     def _build_ordered_pipe_list(
-        cls, parent: T, parent_queue: Optional[asyncio.Queue], pipe_list: List[Pipe]
+        cls, parent: Job, parent_queue: Optional[asyncio.Queue], pipe_list: List[Pipe]
     ) -> List[Pipe]:
         children = parent.children
         if not children:
