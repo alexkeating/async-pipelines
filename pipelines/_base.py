@@ -11,14 +11,33 @@ _T = TypeVar("_T")
 
 
 class MultiQueue:
+    """Multiple Queue class
+
+    A class that allows a user to encapsulate multiple 
+    queues and push messages to those suscribed queues.
+
+    Attributes:
+      queues: subscribed queues
+    """
+
     def __init__(self, queues: List[asyncio.Queue] = None):
         self.queues = queues or []
 
     async def put(self, item: _T) -> None:
+        """Pushes message to queues
+          
+        Args:
+          item: A piece of data to send to all subscribed queues
+        """
         for q in self.queues:
             await q.put(item)
 
     def add_queue(self, q: asyncio.Queue) -> None:
+        """Add queue to subscribed queues
+        
+        Args:
+          q: A asyncio queue
+        """
         self.queues.append(q)
 
 
@@ -27,12 +46,27 @@ Queue = Union[asyncio.Queue, MultiQueue]
 
 @dataclass
 class Pipe:
+    """Metadata to connect Jobs
+
+    A class that holds the data for what queues
+    a job should read from and what queues a job
+    should write to.
+
+    Attributes:
+      parent: Job to be hooked into pipeline
+      queue: Queue Job is going to get messages from
+      subscribed_queues: Queue messages will be sent too
+    """
+
     parent: Job
     queue: Optional[asyncio.Queue]
     subscribed_queues: MultiQueue
 
 
 class Job(abc.ABC):
+    """
+    """
+
     queue = asyncio.Queue
     workers = 5
 

@@ -1,0 +1,9 @@
+site_name: async-pipelines
+nav:
+    - Home: index.md
+    - Api: api.md
+theme: readthedocs
+
+
+markdown_extensions:
+  - mkautodoc

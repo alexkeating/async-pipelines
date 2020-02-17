@@ -33,21 +33,21 @@ def get_packages(package):
 
 
 setup(
-    name="places",
+    name="async-pipelines",
     python_requires=">=3.7",
-    version=get_version("places"),
-    url="https://github.com/alexkeating/places",
+    version=get_version("pipelines"),
+    url="https://github.com/alexkeating/async-pipelines",
     project_urls={
         "Documentation": "https://github.com/alexkeating/places",
-        "Source": "https://github.com/alexkeating/places",
+        "Source": "https://github.com/alexkeating/async-pipelines",
     },
     license="MIT",
     description="A framewwork for processing jobs.",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Alex Keating",
-    package_data={"places": ["py.typed"]},
-    packages=get_packages("places"),
+    package_data={"pipelines": ["py.typed"]},
+    packages=get_packages("pipelines"),
     include_package_data=True,
     zip_safe=False,
     install_requires=[],

@@ -17,3 +17,6 @@ ci:
 
 init_env:
 	pipenv shell
+
+install_self:
+	pipenv install --dev -e .
