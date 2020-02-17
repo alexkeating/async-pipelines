@@ -14,6 +14,8 @@ pytest-cov = "*"
 tox = "*"
 pytest = "*"
 "flake8" = "*"
+mkdocs = "*"
+mkautodoc = "*"
 
 [requires]
 python_version = "3.7"

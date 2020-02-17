@@ -12,7 +12,7 @@ from hypothesis.strategies import (
     one_of,
 )
 
-from places import Job, MultiQueue, Pipe
+from pipelines import Job, MultiQueue, Pipe
 from typing import Optional
 
 # Test build pipeline list

@@ -18,7 +18,7 @@ import asyncio
 # and focus on the query or request etc...
 import random
 from typing import Optional
-from places import Job, Queue, MultiQueue
+from pipelines import Job, Queue, MultiQueue
 
 
 async def randsleep(a: int = 1, b: int = 5, caller=None) -> None:
