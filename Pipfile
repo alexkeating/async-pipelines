@@ -1,0 +1,28 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pytest = "*"
+pytest-asyncio = "*"
+mypy = "*"
+hypothesis = "*"
+pytest-cov = "*"
+mkdocs-material = "*"
+
+[dev-packages]
+tox = "*"
+pytest = "*"
+"flake8" = "*"
+mkdocs = "*"
+mkautodoc = "*"
+e1839a8 = {path = ".",editable = true}
+isort = "*"
+autoflake = "*"
+seed-isort-config = "*"
+black = "==19.10b0"
+atomicwrites = "*"
+
+[requires]
+python_version = "3.7"

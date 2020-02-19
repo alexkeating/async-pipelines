@@ -1,0 +1,14 @@
+#!/bin/sh -e
+
+
+set -x
+
+python -m pip install -U pip
+python -m pip install -U pipenv
+python -m pipenv install -d --deploy
+
+set +x
+
+echo
+echo "Success! You can now activate your virtual environment using:"
+echo "pipenv shell"
