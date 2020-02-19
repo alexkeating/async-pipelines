@@ -38,7 +38,7 @@ setup(
     version=get_version("pipelines"),
     url="https://github.com/alexkeating/async-pipelines",
     project_urls={
-        "Documentation": "https://github.com/alexkeating/places",
+        "Documentation": "https://github.com/alexkeating/async-pipelines",
         "Source": "https://github.com/alexkeating/async-pipelines",
     },
     license="MIT",

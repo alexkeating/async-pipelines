@@ -23,6 +23,8 @@ autoflake = "*"
 seed-isort-config = "*"
 black = "==19.10b0"
 atomicwrites = "*"
+twine = "*"
+wheel = "*"
 
 [requires]
 python_version = "3.7"

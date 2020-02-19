@@ -9,21 +9,21 @@ fi
 
 scripts/clean
 
-if ! command -v "${PREFIX}twine" &>/dev/null ; then
-    echo "Unable to find the 'twine' command."
-    echo "Install from PyPI, using '${PREFIX}pip install twine'."
-    exit 1
-fi
+# if ! command -v "twine" &>/dev/null ; then
+#     echo "Unable to find the 'twine' command."
+#     echo "Install from PyPI, using 'pip install twine'."
+#     exit 1
+# fi
 
-if ! ${PREFIX}pip show wheel &>/dev/null ; then
+if ! pip show wheel &>/dev/null ; then
     echo "Unable to find the 'wheel' command."
-    echo "Install from PyPI, using '${PREFIX}pip install wheel'."
+    echo "Install from PyPI, using 'pip install wheel'."
     exit 1
 fi
 
-if ! command -v "${PREFIX}mkdocs" &>/dev/null ; then
+if ! command -v "$mkdocs" &>/dev/null ; then
     echo "Unable to find the 'mkdocs' command."
-    echo "Install from PyPI, using '${PREFIX}pip install mkdocs'."
+    echo "Install from PyPI, using pip install mkdocs'."
     exit 1
 fi
 
