@@ -1,0 +1,47 @@
+dist: xenial
+language: python
+
+cache: pip
+
+branches:
+  only:
+    - master
+
+python:
+  - 3.7
+  - 3.8
+
+stages:
+  - check
+  - docs
+  - test
+
+matrix:
+  include:
+    - stage: check
+      python: 3.7
+      script: scripts/check
+    - stage: docs
+      python: 3.7
+      script: scripts/docs-build
+    - stage: test
+      os: windows
+      language: shell
+      python: 3.7
+      env:
+        PATH=/c/Python37:/c/Python37/Scripts:$PATH
+      before_install:
+        - choco install python --version 3.7
+        - python -m pip install pipenv
+      install: pipenv install --dev --system --deploy
+      script: scripts/test
+
+  fast_finish: true
+
+script: scripts/test
+
+after_script:
+  - if [ -f .coverage ]; then
+      python -m pip install codecov;
+      codecov --required;
+    fi

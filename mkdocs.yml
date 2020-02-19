@@ -1,9 +1,21 @@
 site_name: async-pipelines
+
+theme:
+    name: 'material'
+
+repo_name: alexkeating/async-pipelines
+repo_url: https://github.com/alexkeating/async-pipelines 
+edit_uri: ""
+
 nav:
     - Home: index.md
     - Api: api.md
-theme: readthedocs
-
 
 markdown_extensions:
-  - mkautodoc
+    - admonition
+    - codehilite
+    - mkautodoc
+
+
+extra_css:
+    - css/custom.css

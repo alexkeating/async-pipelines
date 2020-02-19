@@ -1,16 +1,16 @@
 # Full library api
 
-## Base Data Structures
+## `Base Data Structures`
 
 ::: pipelines.Job
-  :docstring:
-  :members:
+    :docstring:
+    :members: start execute_jobs set_downstream
 
 ::: pipelines.Pipe
-  :docstring:
-  :members:
+    :docstring:
+    :members:
 
 ::: pipelines.MultiQueue
-  :docstring:
-  :members:
+    :docstring:
+    :members: put add_queue
 

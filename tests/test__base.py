@@ -1,19 +1,11 @@
+from typing import Optional
+
 import asyncio
 import pytest
-
 from hypothesis import given
-from hypothesis.strategies import (
-    builds,
-    composite,
-    data,
-    integers,
-    lists,
-    none,
-    one_of,
-)
+from hypothesis.strategies import builds, composite, data, integers, lists, none, one_of
 
 from pipelines import Job, MultiQueue, Pipe
-from typing import Optional
 
 # Test build pipeline list
 
