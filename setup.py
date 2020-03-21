@@ -3,6 +3,7 @@ from pathlib import Path
 
 from setuptools import setup
 
+sqs = ["aiobotocore>=0.11.0", "marshmallow~=3.1.0"]
 
 def get_version(package):
     """
@@ -51,6 +52,9 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[],
+    extras={
+        "sqs": sqs
+    }
     classifiers=[
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",

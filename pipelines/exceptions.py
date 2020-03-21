@@ -1,0 +1,2 @@
+class SQSJobException(Exception):
+    pass

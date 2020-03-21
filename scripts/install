@@ -6,6 +6,7 @@ set -x
 python -m pip install -U pip
 python -m pip install -U pipenv
 python -m pipenv install -d --deploy
+python -m pipenv install -e .
 
 set +x
 

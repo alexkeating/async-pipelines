@@ -10,14 +10,16 @@ mypy = "*"
 hypothesis = "*"
 pytest-cov = "*"
 mkdocs-material = "*"
+aiohttp = "*"
+flask = "*"
+aiobotocore = "*"
 
 [dev-packages]
 tox = "*"
 pytest = "*"
-"flake8" = "*"
+flake8 = "*"
 mkdocs = "*"
 mkautodoc = "*"
-e1839a8 = {path = ".",editable = true}
 isort = "*"
 autoflake = "*"
 seed-isort-config = "*"
@@ -25,6 +27,8 @@ black = "==19.10b0"
 atomicwrites = "*"
 twine = "*"
 wheel = "*"
+bleach = ">=3.1.1"
+moto = "*"
 
 [requires]
 python_version = "3.7"

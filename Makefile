@@ -5,7 +5,7 @@ test:
 	pytest --cov=.
 
 typecheck:
-	mypy -m pipelines
+	mypy ./pipelines --strict
 
 lint:
 	black .
