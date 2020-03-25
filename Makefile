@@ -2,7 +2,7 @@ local:
 	$(MAKE) test
 
 test:
-	pytest --cov=.
+	pytest --cov=tests
 
 typecheck:
 	mypy ./pipelines --strict

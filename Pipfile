@@ -13,6 +13,8 @@ mkdocs-material = "*"
 aiohttp = "*"
 flask = "*"
 aiobotocore = "*"
+marshmallow = "*"
+faker = "*"
 
 [dev-packages]
 tox = "*"

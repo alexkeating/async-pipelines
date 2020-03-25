@@ -53,4 +53,4 @@ def sqs_client(request, session, region, sqs_server, event_loop):
     return client
 
 
-pytest_plugins = ["plugins.moto.mock_server"]
+pytest_plugins = ["plugins.moto.mock_server", "plugins.sqs"]

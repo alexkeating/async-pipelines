@@ -1,8 +1,12 @@
+import aiobotocore
+
 from ._base import Job, Queue, MultiQueue
 from .exceptions import SQSJobException
+from .handlers import BaseHandler
+from .validators import BaseValidator
 
 from marshmallow import Schema
-from typing import Optional
+from typing import Optional, List, Type
 
 # Create Regular SQS JOB
 # This job should handle batching
@@ -30,7 +34,7 @@ class SQSSubscriber(Job):
     # This would take a handler class and pass int the
     # requiste arguments.
     handler: Optional[Type[BaseHandler]] = None
-    validator = Optional[Type[BaseValidator]] = None
+    validator: Optional[Type[BaseValidator]] = None
 
     def __init__(self, region: str, client=None) -> None:
         if not self.handler:

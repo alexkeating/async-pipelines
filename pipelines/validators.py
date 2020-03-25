@@ -15,7 +15,7 @@ class BaseValidator(abc.ABC):
         pass
 
 
-class MarshmellowValidator(BaseValidator):
+class MarshmallowValidator(BaseValidator):
     schema: Optional["marshmellow.Schema"] = None
 
     @classmethod
