@@ -1,7 +1,7 @@
 import aiobotocore
 import logging
 
-from ._base import Job, Queue, MultiQueue
+from ._base import Job, Queue, MultiQueue, _retry
 from .exceptions import SQSJobException
 from .handlers import BaseHandler
 from .validators import BaseValidator
@@ -11,33 +11,29 @@ from typing import Dict, Optional, List, Tuple, Type
 
 logger = logging.getLogger(__name__)
 
-# Create Regular SQS JOB
-# This job should handle batching
-# it should handle message validation
 
-# All this does it gets messages from SQS
-# and passes it on to the next queue
-# maybe provide a transformation function?
-# There will need to be a send and receive class
-
-# At every point in time we can determine whether the node
-# is in the root or ending node. The node cannot be in the or end. Unless we have a recevier and producer class. By knowing this
-# we can determine whether to apply to transformation or not?
-
-# Add retry logic
-
-# 1. Basic funcitonality, get batch, apply trnasformation, send to next queue or not. Once 0 messages is it end job.
-# 2. Messages should be validatd with validation logic conditionally applied.
-# 3. Retry logic should be implmented with the user having the ability to override or add onto the existing exceptions that are caught.
-# Build message handler class
 class SQSSubscriber(Job):
+    """
+    A job meant to be used when the root node of a pipeline gets
+    data from an SQS queue. This job will batch sqs messages together
+    and pass them through the entire pipeline.
+
+    **Parameters**
+
+    * **queue_url** - url of target sqs queue
+    * **batch_size** - size of batch to be sent to next job
+    * **num_batches** - number of batches to pull from SQS before processing a batch
+    * **handler** - a handler class that modifies the message to be passed to the next process
+    * **validator** - A validation class that verfies the sqs message is as expected
+    * **num_retries** - Number retries for sqs calls
+    """
+
     queue_url = ""
     batch_size: int = 10
     num_batches: int = 10
-    # This would take a handler class and pass int the
-    # requiste arguments.
     handler: Optional[Type[BaseHandler]] = None
     validator: Optional[Type[BaseValidator]] = None
+    num_retries: int = 3
 
     def __init__(self, region: str, client=None) -> None:
         if not self.handler:
@@ -50,20 +46,30 @@ class SQSSubscriber(Job):
         client = session.create_client("sqs", region_name=self.region)
         return client
 
+    async def _receive_message(self):
+        return await _retry(
+            self.client.receive_message,
+            {"QueueUrl": self.queue_url},
+            attempts=self.num_retries,
+        )
+
+    async def _delete_message(self, receipt_handle: str):
+        return await _retry(
+            self.client.delete_message,
+            {"QueueUrl": self.queue_url, "ReceiptHandle": receipt_handle},
+            attempts=self.num_retries,
+        )
+
     async def build_batches(self):
-        """This functions should build batches based
-        on the provided batch size from the SQS queue.
-        If the queue is empty the function should stop pushing
-        and stop. Potentially we should allow this job to sleep
-        and never end. I don't know how this would work
+        """
+        Creates batches of SQS messages
 
-        Need to test against some semi real data
-
-        Figure out what to do with the rest of the receive args.
-        How can a user override the defaults.
+        The number of batches will match the num_batches set at the class 
+        level if there is a equivelent or greater number of messages in
+        the SQS.
         """
         batches = []
-        response = await self.client.receive_message(QueueUrl=self.queue_url)
+        response = await self._receive_message()
         messages = response.get("Messages", [])
         rem_messages = []
         while len(messages) > 0:
@@ -72,7 +78,7 @@ class SQSSubscriber(Job):
                 del messages[: self.batch_size]
             if len(batches) >= self.num_batches:
                 break
-            response = await self.client.receive_message(QueueUrl=self.queue_url)
+            response = await self._receive_message()
             rem_messages = response.get("Messages", [])
             if len(rem_messages) == 0:
                 break
@@ -82,7 +88,6 @@ class SQSSubscriber(Job):
             messages = []
         return batches
 
-    # Where does the receipt handle come from
     async def _message_validation(
         self, batch: List[str]
     ) -> Tuple[List[Schema], List[Dict[str, str]]]:
@@ -97,13 +102,10 @@ class SQSSubscriber(Job):
                 logger.warn(
                     f"Message from SQS is invalid deleting message. err: {e.messages}. valid_data: {e.valid_data}"
                 )
-                await self.client.delete_message(
-                    QueueUrl=self.queue_url, ReceiptHandle=msg["ReceiptHandle"]
-                )
+                await self._delete_message(receipt_handle=msg["ReceiptHandle"])
         return final_batch, raw_batch
 
     async def start(self, in_q: Optional[Queue], out_q: Optional[MultiQueue]):
-        """A default implementation should be offered here"""
         if in_q is not None:
             raise SQSJobException(
                 "SQSReceiver cannot be a middle node or an end node. Please use the SQSPublisher class or make the job the root node"
@@ -114,17 +116,11 @@ class SQSSubscriber(Job):
                 if self.validator:
                     validated_batch, raw_batch = await self._message_validation(batch)
                 processed_batch = await self.handler.handle(validated_batch, raw_batch)
-                # Batches fail or succeed together
                 for msg in raw_batch:
-                    await self.client.delete_message(
-                        QueueUrl=self.queue_url, ReceiptHandle=msg["ReceiptHandle"]
-                    )
+                    await self._delete_message(receipt_handle=msg["ReceiptHandle"])
                 await out_q.put(processed_batch)
             batches = await self.build_batches()
 
 
 class SQSPublisher:
     pass
-
-
-# Create thread safe SQS Job

@@ -4,6 +4,7 @@ import pytest
 from marshmallow import fields, Schema
 from plugins.sqs import M, MockHandler, MockSchema, MockValidator
 from pipelines._base import MultiQueue
+from pipelines.exceptions import SQSJobException
 from pipelines.sqs import SQSSubscriber
 
 
@@ -84,3 +85,12 @@ async def test_sqs_start(sqs_client, queue_name, create_sqs_messages, num_msg, s
     )
     assert attributes["Attributes"]["ApproximateNumberOfMessages"] == "0"
     assert multi_queue.queues[0].qsize() == size
+
+
+@pytest.mark.asyncio
+async def test_sqs_start_not_root(sqs_client, queue_name, create_sqs_messages):
+    multi_queue = MultiQueue(queues=[asyncio.Queue()])
+    with pytest.raises(SQSJobException):
+        batches = await MockSQSSubscriber("us-east-1", sqs_client).start(
+            in_q=multi_queue, out_q=multi_queue
+        )

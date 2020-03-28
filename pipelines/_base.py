@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import collections
 from dataclasses import dataclass
+from .exceptions import RetryException
 from typing import Deque, List, Optional, Set, Tuple, TypeVar, Union
 
 import asyncio
@@ -215,3 +216,22 @@ class Job(abc.ABC):
             pipe_list.append(pipe)
             pipe_list = cls._build_ordered_pipe_list(child, child_queue, pipe_list)
         return pipe_list
+
+
+async def _retry(
+    func, params, exceptions=Exception, attempts=3, delay=0, max_delay=None, backoff=1.0
+):
+    attempts = attempts or 1
+    while attempts:
+        try:
+            return await func(**params)
+        except self.exceptions as e:
+            attempts -= 1
+            if attempts == 0:
+                raise RetryException(
+                    f"{func.__name__} failed after {self.attempts} attempts."
+                ) from e
+            await asyncio.sleep(delay)
+            delay *= backoff
+            if max_delay is not None:
+                delay = min(delay, max_delay)
