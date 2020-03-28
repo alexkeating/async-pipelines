@@ -8,13 +8,13 @@ from dataclasses import dataclass
 from faker import Faker
 from marshmallow import fields, post_load, Schema, ValidationError
 
-from pipelines.handlers import BaseHandler
+from pipelines.handlers import SQSReceiverHandler
 from pipelines.validators import MarshmallowValidator
 
 fake = Faker()
 
 
-class MockHandler(BaseHandler):
+class MockHandler(SQSReceiverHandler):
     pass
 
 

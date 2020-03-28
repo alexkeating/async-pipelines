@@ -122,5 +122,53 @@ class SQSSubscriber(Job):
             batches = await self.build_batches()
 
 
+# Same sort of thing
+# 1. Take arbitrary data from other process.
+# Potentially batch
+# 2. Process data and send to queue
+# 3. There should also be an SNS Subscriber
+# The incoming messages will need to be batched or else the flag needs
+# to be turned on.
 class SQSPublisher:
-    pass
+    batch: bool = False
+    handler: Optional[Type[BaseHandler]] = None
+    validator: Optional[Type[BaseValidator]] = None
+
+    async def send_message(self, message: str):
+        self.client.send_message(QueueUrl=self.queue_url, MessageBody=message)
+
+    def _message_validation(
+        self, batch: List[str]
+    ) -> Tuple[List[Schema], List[Dict[str, str]]]:
+        final_batch = []
+        for msg in batch:
+            result = self.validator.validate(msg)
+            final_batch.append(result)
+        return final_batch
+
+    async def start(self, in_q: Optional[Queue], out_q: Optional[MultiQueue]) -> None:
+
+        while True:
+            # Check msg is iterable if not raise error
+            if self.batch:
+                # Build batches
+                pass
+            else:
+                msgs = await in_q.get()
+
+            processed_batch = await self.handler.handle(msgs)
+            # If no validator raise error of result is not string
+            if not isinstance(validated_batch, list):
+                raise SQSJobException(
+                    "Handler must return a list of items to be validated and sent to SQS!"
+                )
+            validated_batch = self._message_validation(processed_batch)
+            for msg in validated_batch:
+                if not isinstance(msg, str):
+                    raise SQSJobException(
+                        f"All validation must serialize the data to a string. {msg} is not a string it is a {type(msg)}"
+                    )
+                # Send validated message
+                await self.send_message(msg)
+            # is this below line necessary
+            in_q.task_done()
