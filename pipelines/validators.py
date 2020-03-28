@@ -1,11 +1,13 @@
 import abc
+import json
+
 from typing import List, Optional
 
 
 try:
-    import marshmellow
+    import marshmallow
 except ImportError:  # pragma: nocover
-    marshmellow = None  # type: ignore
+    marshmallow = None  # type: ignore
 
 
 class BaseValidator(abc.ABC):
@@ -19,8 +21,9 @@ class MarshmallowValidator(BaseValidator):
     schema: Optional["marshmellow.Schema"] = None
 
     @classmethod
-    def validate(data: str) -> "marshmellow.Schema":
+    def validate(cls, data: str) -> "marshmallow.Schema":
+        schema = cls.schema()
         assert (
-            marshmellow is not None
-        ), "marchmellow must be installed to use MarshmellowValidator"
-        return schema.load(msg)
+            marshmallow is not None
+        ), "marshmallow must be installed to use MarshmallowValidator"
+        return schema.loads(data)

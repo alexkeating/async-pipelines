@@ -4,21 +4,36 @@ import pytest
 import random
 import uuid
 
+from dataclasses import dataclass
 from faker import Faker
-from marshmallow import fields, Schema
+from marshmallow import fields, post_load, Schema, ValidationError
 
+from pipelines.handlers import BaseHandler
 from pipelines.validators import MarshmallowValidator
 
 fake = Faker()
 
 
-class MockHandler:
+class MockHandler(BaseHandler):
     pass
 
 
-class MockSchema:
+@dataclass
+class M:
+    name: str
+    uuid: str
+
+
+class MockSchema(Schema):
     name = fields.Str()
-    uuid = fields.UUID()
+    uuid = fields.Str()
+
+    @post_load
+    def make_user(self, data, **kwargs):
+        try:
+            return M(**data)
+        except TypeError as e:
+            raise ValidationError("Could not create M") from e
 
 
 class MockValidator(MarshmallowValidator):
@@ -33,7 +48,7 @@ faker_funcs = {
 
 def add_faker_data(schema: Schema):
     kwargs = {}
-    for k, v in vars(schema).items():
+    for k, v in schema._declared_fields.items():
         if isinstance(v, fields.Field):
             try:
                 kwargs[k] = faker_funcs[type(v)]
@@ -55,7 +70,9 @@ def create_sqs_messages(sqs_client, queue_name):
         messages = []
         for _ in range(0, num):
             body = add_faker_data(schema)
-            sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(body))
+            await sqs_client.send_message(
+                QueueUrl=queue_url, MessageBody=json.dumps(body)
+            )
             messages.append(body)
         return messages
 
